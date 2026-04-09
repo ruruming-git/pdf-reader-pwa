@@ -63,7 +63,43 @@ body {
   padding-bottom: var(--safe-bottom);
 }
 
-/* ── Toolbar wrapper (fixed, clips overflow) ── */
+/* ── Toolbar collapsed state ── */
+#toolbar-wrap.collapsed {
+  height: auto;
+  border-bottom: none;
+  background: transparent;
+  box-shadow: none;
+  position: fixed;
+  top: calc(var(--safe-top) + 10px);
+  left: calc(var(--safe-left) + 10px);
+  z-index: 100;
+  width: auto;
+}
+#toolbar-wrap.collapsed::before,
+#toolbar-wrap.collapsed::after { display: none; }
+#toolbar-wrap.collapsed #toolbar {
+  display: none;
+}
+#toolbar-wrap.collapsed #toolbar-toggle {
+  width: 44px; height: 44px; border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px var(--shadow);
+  font-size: 18px;
+}
+
+/* toggle button always visible */
+#toolbar-toggle {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; cursor: pointer; flex-shrink: 0;
+  transition: background .15s, transform .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+#toolbar-toggle:active { transform: scale(0.9); }
 #toolbar-wrap {
   position: relative;
   background: var(--panel);
@@ -74,6 +110,10 @@ body {
   z-index: 20;
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
+  display: flex; align-items: center;
+  padding: 0 8px;
+  gap: 4px;
+  overflow: hidden;
 }
 
 /* Fade edges to hint scrollability */
@@ -85,7 +125,7 @@ body {
   transition: opacity .2s;
 }
 #toolbar-wrap::before {
-  left: 0;
+  left: 46px;
   background: linear-gradient(to right, var(--panel) 0%, transparent 100%);
 }
 #toolbar-wrap::after {
@@ -97,22 +137,19 @@ body {
 
 /* ── Toolbar (scrollable inner) ── */
 #toolbar {
+  flex: 1;
   height: 100%;
   display: flex; align-items: center; gap: 6px;
-  padding: 0 16px;
-  padding-left: calc(16px + var(--safe-left));
-  padding-right: calc(16px + var(--safe-right));
+  padding: 0 8px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  scrollbar-width: none;          /* Firefox */
-  -ms-overflow-style: none;       /* IE */
-  /* prevent vertical bounce on iPad */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   touch-action: pan-x;
 }
 #toolbar::-webkit-scrollbar { display: none; }
-/* keep all children on one line */
 #toolbar > * { flex-shrink: 0; }
 
 .toolbar-brand {
@@ -414,6 +451,7 @@ canvas {
 
 <!-- Toolbar -->
 <div id="toolbar-wrap" class="at-start">
+<button id="toolbar-toggle" title="收合工具列">☰</button>
 <div id="toolbar">
   <div class="toolbar-brand">
     <div class="brand-icon">✦</div>
@@ -488,14 +526,39 @@ canvas {
     <div id="chat-header">
       <div class="chat-header-left">
         <div class="chat-dot"></div>
-        <span>Claude 閱讀助手</span>
+        <span>Gemini 閱讀助手</span>
       </div>
-      <button id="chat-close">✕</button>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="btn-apikey" title="設定 API Key" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:2px 4px;border-radius:4px;-webkit-tap-highlight-color:transparent;">🔑</button>
+        <button id="chat-close">✕</button>
+      </div>
     </div>
+
+    <!-- API Key setup screen -->
+    <div id="apikey-screen" style="display:none;flex-direction:column;gap:14px;padding:18px;flex:1;">
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.6;">輸入你的 Gemini API Key，僅儲存在此裝置本機，不會上傳到任何伺服器。</p>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em;">API Key</label>
+        <input id="apikey-input" type="password"
+          placeholder="AIza..."
+          style="background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px;font-size:13px;font-family:'DM Mono',monospace;outline:none;-webkit-user-select:text;user-select:text;-webkit-appearance:none;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button id="apikey-save" style="flex:1;background:linear-gradient(135deg,var(--accent),#b86f20);border:none;color:white;border-radius:10px;padding:11px;font-size:13px;cursor:pointer;font-family:'Noto Serif TC',serif;font-weight:600;">儲存</button>
+        <button id="apikey-cancel" style="background:var(--panel);border:1px solid var(--border);color:var(--text-muted);border-radius:10px;padding:11px 14px;font-size:13px;cursor:pointer;">取消</button>
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);line-height:1.6;">
+        還沒有 Key？前往
+        <a href="https://aistudio.google.com/apikey" style="color:var(--accent-soft);">aistudio.google.com</a>
+        免費取得。
+      </p>
+      <button id="apikey-clear" style="background:none;border:none;color:#666;font-size:11px;cursor:pointer;text-decoration:underline;text-align:left;">清除已儲存的 Key</button>
+    </div>
+
     <div id="chat-messages">
       <div class="msg ai">
-        <span class="msg-label">Claude</span>
-        <div class="msg-bubble">你好！用 Apple Pencil 點選 PDF 文字，我可以幫你解釋、翻譯或分析內容。</div>
+        <span class="msg-label">Gemini</span>
+        <div class="msg-bubble">你好！用 Apple Pencil 點選 PDF 文字，我可以幫你解釋、翻譯或分析內容。<br><br>點右上角 🔑 設定 Gemini API Key 後即可開始。</div>
       </div>
     </div>
     <div id="chat-input-area">
@@ -880,23 +943,37 @@ async function sendMessage(prompt, quoteText) {
   // AI loading bubble
   const aDiv = document.createElement('div');
   aDiv.className = 'msg ai';
-  aDiv.innerHTML = `<span class="msg-label">Claude</span><div class="msg-bubble loading">思考中…</div>`;
+  aDiv.innerHTML = `<span class="msg-label">Gemini</span><div class="msg-bubble loading">思考中…</div>`;
   chatMsgs.appendChild(aDiv);
   chatMsgs.scrollTop = chatMsgs.scrollHeight;
 
+  // Build Gemini contents from history
+  const geminiContents = chatHistory.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: '你是一個 PDF 閱讀助手，幫助使用者理解文件內容。請用繁體中文回答，語氣友善簡潔，必要時用條列方式呈現。',
-        messages: chatHistory
-      })
-    });
+    const GEMINI_KEY = getApiKey();
+    if (!GEMINI_KEY) {
+      aDiv.querySelector('.msg-bubble').classList.remove('loading');
+      aDiv.querySelector('.msg-bubble').innerHTML = '請先點右上角 🔑 設定 Gemini API Key。';
+      showApiKeyScreen();
+      return;
+    }
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: '你是一個 PDF 閱讀助手，幫助使用者理解文件內容。請用繁體中文回答，語氣友善簡潔，必要時用條列方式呈現。' }] },
+          contents: geminiContents
+        })
+      }
+    );
     const data = await res.json();
-    const reply = data.content?.[0]?.text || '（無法取得回應）';
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '（無法取得回應）';
     chatHistory.push({ role: 'assistant', content: reply });
     aDiv.querySelector('.msg-bubble').classList.remove('loading');
     aDiv.querySelector('.msg-bubble').textContent = reply;
@@ -981,6 +1058,80 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
 }
+
+// ── API Key (stored in localStorage, never leaves device) ──
+const STORAGE_KEY = 'gemini_api_key';
+
+function getApiKey() {
+  return localStorage.getItem(STORAGE_KEY) || '';
+}
+function saveApiKey(key) {
+  localStorage.setItem(STORAGE_KEY, key.trim());
+}
+function clearApiKey() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+const apikeyScreen  = document.getElementById('apikey-screen');
+const chatMessages  = document.getElementById('chat-messages');
+const chatInputArea = document.getElementById('chat-input-area');
+
+function showApiKeyScreen() {
+  apikeyScreen.style.display = 'flex';
+  chatMessages.style.display = 'none';
+  chatInputArea.style.display = 'none';
+  const existing = getApiKey();
+  document.getElementById('apikey-input').value = existing
+    ? existing.slice(0,6) + '••••••••••••' : '';
+}
+function hideApiKeyScreen() {
+  apikeyScreen.style.display = 'none';
+  chatMessages.style.display = 'flex';
+  chatInputArea.style.display = 'flex';
+}
+
+document.getElementById('btn-apikey').addEventListener('click', () => {
+  ensureChatOpen();
+  showApiKeyScreen();
+});
+document.getElementById('apikey-cancel').addEventListener('click', hideApiKeyScreen);
+document.getElementById('apikey-save').addEventListener('click', () => {
+  const val = document.getElementById('apikey-input').value.trim();
+  if (!val || val.includes('••')) { hideApiKeyScreen(); return; }
+  saveApiKey(val);
+  hideApiKeyScreen();
+  // Show confirmation in chat
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `<span class="msg-label">系統</span><div class="msg-bubble">✅ API Key 已儲存在本機，可以開始使用了！</div>`;
+  chatMsgs.appendChild(div);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+});
+document.getElementById('apikey-clear').addEventListener('click', () => {
+  clearApiKey();
+  document.getElementById('apikey-input').value = '';
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `<span class="msg-label">系統</span><div class="msg-bubble">🗑 API Key 已清除。</div>`;
+  chatMsgs.appendChild(div);
+  hideApiKeyScreen();
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+});
+
+// Focus input properly on iOS
+document.getElementById('apikey-input').addEventListener('touchend', function() {
+  this.removeAttribute('readonly');
+  this.focus();
+});
+
+// ── Toolbar toggle (收合到角落) ──
+const toolbarWrap = document.getElementById('toolbar-wrap');
+const toolbarToggle = document.getElementById('toolbar-toggle');
+toolbarToggle.addEventListener('click', () => {
+  const collapsed = toolbarWrap.classList.toggle('collapsed');
+  toolbarToggle.textContent = collapsed ? '☰' : '✕';
+  toolbarToggle.title = collapsed ? '展開工具列' : '收合工具列';
+});
 
 // ── Toolbar scroll fade indicators ──
 (function() {
